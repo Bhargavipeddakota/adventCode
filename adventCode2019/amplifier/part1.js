@@ -39,55 +39,77 @@ const jumpOp = (predicate) => (memory, ip, modes) => {
   return predicate(arg1) ? arg2 : ip + 3;
 };
 
-const print = (memory, ip, modes) => {
+const print = (memory, ip, modes, state) => {
   const value = getParam(memory, ip, 1, modes[0]);
-  console.log(value);
+  state.output.push(value);
   return ip + 2;
 };
 
-const takeInput = (memory, ip) => {
+const takeInput = (memory, ip, modes, state) => {
+  if (state.input.length === 0) return ip;
+
   const dest = memory[ip + 1];
-  memory[dest] = +prompt("Enter input:");
+  memory[dest] = state.input.shift();
+
   return ip + 2;
 };
 
-const add = binaryOp((a, b) => a + b);
-const mul = binaryOp((a, b) => a * b);
-const jumpIfTrue = jumpOp((x) => x !== 0);
-const jumpIfFalse = jumpOp((x) => x === 0);
-const lessThan = binaryOp((a, b) => (a < b ? 1 : 0));
-const equalsOp = binaryOp((a, b) => (a === b ? 1 : 0));
+const add = () =>binaryOp((a, b) => a + b);
+const mul = ()=>binaryOp((a, b) => a * b);
+const lessThan =()=> binaryOp((a, b) => (a < b ? 1 : 0));
+const equalsOp = ()=>binaryOp((a, b) => (a === b ? 1 : 0));
+const jumpIfTrue = ()=>jumpOp((x) => x !== 0);
+const jumpIfFalse =()=> jumpOp((x) => x === 0);
 
 const opcodes = {
-  1: add,
-  2: mul,
+  1: add(),
+  2: mul(),
   3: takeInput,
   4: print,
-  5: jumpIfTrue,
-  6: jumpIfFalse,
-  7: lessThan,
-  8: equalsOp,
+  5: jumpIfTrue(),
+  6: jumpIfFalse(),
+  7: lessThan(),
+  8: equalsOp(),
 };
+const createState = (memoryInput, inputArray = []) => ({
+  memory: [...memoryInput],
+  ip: 0,
+  input: [...inputArray],
+  output: [],
+});
 
-const execute = (memory, opcode, ip, modes) => {
-  const op = opcodes[opcode];
-  return op(memory, ip, modes);
-};
+// const execute = (memory, opcode, ip, modes) => {
+//   const op = opcodes[opcode];
+//   return op(memory, ip, modes);
+// };
 
-const performInstruction = (memory) => {
-  let ip = 0;
-
-  while (memory[ip] !== 99) {
-    const { opcode, modes } = parseInstruction(memory[ip]);
-    ip = execute(memory, opcode, ip, modes);
+const performInstruction = (state) => {
+  while (state.memory[state.ip] !== 99) {
+    const { opcode, modes } = parseInstruction(state.memory[state.ip]);
+    state.ip = opcodes[opcode](state.memory, state.ip, modes, state);
   }
 };
 
-const main = (input) => {
-  const memory = convertInput(input);
-  performInstruction(memory);
-};
-// const input = "3,0,4,0,99";
-// main(input);
+const runAmplifiers = (program)=> {
+const phases = [4,3,2,1,0];
+const states = phases.map((phase, index) =>
+  createState(program, index === 0 ? [phase, 0] : [phase])
+);
+for (let i = 0; i < states.length; i++) {
+  performInstruction(states[i]);
+  if (i < states.length - 1) {
+    states[i + 1].input.push(states[i].output[0]);
+  }
+}
+console.log(states);
+return  states[states.length-1].output[0];
+}
 
-main(Deno.readTextFileSync("../intcode/input1.txt"));
+const main = (input) => {
+  const program = convertInput(input);
+  const thrusterSignal = runAmplifiers(program);
+  console.log("Thruster signal:", thrusterSignal);
+};
+
+// main(Deno.readTextFileSync("../intcode/input1.txt"));
+main(`3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0`);
