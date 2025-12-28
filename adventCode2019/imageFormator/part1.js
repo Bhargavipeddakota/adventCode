@@ -1,6 +1,6 @@
 import { chunk } from "jsr:@std/collections";
 
-const parseInput = (input) => [...input].map(Number);
+const parseInput = (input) => [...input].map(x => +x);
 
 const convertToLayers = (imageData, width, height) =>
   chunk(imageData, width * height);
@@ -20,7 +20,7 @@ const findLayerWithFewestZeros = (layers) =>
   );
 
 const main = () => {
-  const input = readTextFileSync("./input1.txt");
+  const input = Deno.readTextFileSync("./input1.txt");
   const imageData = parseInput(input);
   const layers = convertToLayers(imageData, 25, 6);
 
