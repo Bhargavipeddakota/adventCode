@@ -48,9 +48,11 @@ const print = (memory, ip, modes, state) => {
 };
 
 const takeInput = (memory, ip, modes, state) => {
+  if (state.input.length === 0) {
+    return ip;
+  }
   const dest = memory[ip + 1];
   memory[dest] = state.input.shift();
-
   return ip + 2;
 };
 
@@ -76,47 +78,59 @@ const createState = (memoryInput, inputArray = []) => ({
   ip: 0,
   input: [...inputArray],
   output: [],
+  halted: false,
 });
 
-// const execute = (memory, opcode, ip, modes) => {
-//   const op = opcodes[opcode];
-//   return op(memory, ip, modes);
-// };
-
 const performInstruction = (state) => {
-  while (state.memory[state.ip] !== 99) {
-    const { opcode, modes } = parseInstruction(state.memory[state.ip]);
-    state.ip = opcodes[opcode](state.memory, state.ip, modes, state);
+  const instruction = state.memory[state.ip];
+  if (instruction === 99) {
+    state.halted = true;
+    return;
   }
-};
-const runEachAmpilifier = (states) => {
-  for (let i = 0; i < states.length; i++) {
-    performInstruction(states[i]);
-    if (i < states.length - 1) {
-      states[i + 1].input.push(states[i].output[0]);
-    }
-  }
+  const { opcode, modes } = parseInstruction(instruction);
+  const nextIp = opcodes[opcode](state.memory, state.ip, modes, state);
+ if (opcode === 3 && nextIp === state.ip) return;
+  state.ip = nextIp;
 };
 
-const runAmplifiers = (program) => {
-  let thrusterSignals = [];
-  const permutationsPhases = permutations([0, 1, 2, 3, 4]);
-  for (const phases of permutationsPhases) {
-    const states = phases.map((phase, index) =>
-      createState(program, index === 0 ? [phase, 0] : [phase])
-    );
-    runEachAmpilifier(states);
-    thrusterSignals.push(states[states.length - 1].output[0]);
+const runEachAmpilifier = (states) => {
+  let i = 0;
+  let lastOutput;
+  while (!states[states.length - 1].halted) {
+    const state = states[i];
+    performInstruction(state);
+    const out = state.output.shift();
+    if (out !== undefined) {
+      lastOutput = out;
+      states[(i + 1) % states.length].input.push(out);
+    }
+    i = (i + 1) % states.length;
   }
+  return lastOutput;
+};
+
+const runAmplifiersWithFeedback = (program) => {
+  const permutationsPhases = permutations([5, 6, 7, 8, 9]);
+  let thrusterSignals = [];
+
+  for (const phases of permutationsPhases) {
+    const states = phases.map((phase) =>
+      createState(program, [phase])
+    );
+    states[0].input.push(0);
+    thrusterSignals.push(runEachAmpilifier(states));
+  }
+
   return thrusterSignals;
 };
 
+
 const main = (input) => {
   const program = convertInput(input);
-  const thrusterSignal = runAmplifiers(program);
+  const thrusterSignal = runAmplifiersWithFeedback(program);
   console.log(`max thrusterSignel:`, Math.max(...thrusterSignal));
 };
 
-main(Deno.readTextFileSync("./input1.txt"));
+main(Deno.readTextFileSync("./input2.txt"));
 
-// main(`3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0`);
+// main(`3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5`);

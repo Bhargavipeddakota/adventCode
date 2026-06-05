@@ -10,11 +10,13 @@ const add = (array, index) => {
   array[array[index + 3]] = result;
   return [array, index + 4];
 };
+
 const mul = (array, index) => {
   const result = array[array[index + 1]] * array[array[index + 2]];
   array[array[index + 3]] = result;
   return [array, index + 4];
 };
+
 const excute = function (memory, oppcode, index) {
   switch (oppcode) {
     case 1:
@@ -26,6 +28,7 @@ const excute = function (memory, oppcode, index) {
   }
   return [memory, index + 1];
 };
+
 const performInstruction = (memory) => {
   let index = 0;
   while (index < memory.length) {
@@ -34,6 +37,7 @@ const performInstruction = (memory) => {
   }
   return memory;
 };
+
 const doSomething = () => {
   let result = [];
 for (let noun = 0; noun <= 99; noun++) {
@@ -48,6 +52,7 @@ for (let noun = 0; noun <= 99; noun++) {
   }
 }
 }
+
 const [noun,verb] = doSomething();
 const outPut = (noun*100) + verb;
 console.log(outPut);
